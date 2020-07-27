@@ -1,14 +1,13 @@
 # packages needed
-library(palmerpenguins)
-library(tidyverse)
-library(ggalluvial)
-library(viridis)
-library(ggthemes)
+library(tidyverse) # manage data
+library(ggalluvial) # alluvial diagrams
+library(viridis) # color
+library(ggthemes) # themes
 
 # get the github repo
-install.packages("remotes")
-remotes::install_github("allisonhorst/palmerpenguins")
-
+library(remotes)
+remotes::install_github("allisonhorst/palmerpenguins", force = TRUE)
+library(palmerpenguins)
 # package contains 2 datesets
 data(package = 'palmerpenguins')
 ?penguins
@@ -19,21 +18,22 @@ head(penguins_raw) # raw dataset
 str(penguins)
 str(penguins_raw)
 
-# analyze data
+# analyze and clean data --------------------------------------------------
+penguins
+
 penguins %>%
   count(species)
 
-# get rid of NA
-penguins_01 <- penguins %>% 
+penguins_01 <- penguins %>% # get rid of NA
   na.omit()
 
-# explore and visualize data ----------------------------------------------
+# Explore the data ----------------------------------------------
 # bill vs flipper length
 penguins_01 %>%
   ggplot(aes(bill_length_mm, flipper_length_mm)) +
   geom_point() 
 
-penguins_01 %>% # by species
+penguins_01 %>% # by species 
   ggplot(aes(bill_length_mm, flipper_length_mm, group = species)) +
   geom_point(aes(shape = species, colour = species))
 
@@ -60,8 +60,8 @@ penguins_02 <- penguins_01 %>%
   mutate(body_mass_kg = body_mass_g/1000) %>%
   mutate(avg_bill_length = ifelse(bill_length_mm > 44, "Longer", "Shorter")) %>%
   mutate(avg_flipper_length = ifelse(flipper_length_mm > 200, "Longer", "Shorter")) %>%
-  mutate(avg_body_mass = ifelse(body_mass_kg > 4.13, "High", "Low")) %>%
-  group_by(species, island, sex, avg_bill_length, avg_flipper_length, avg_body_mass) %>%
+  mutate(avg_body_mass = ifelse(body_mass_kg > 4.13, "Higher", "Lower")) %>%
+  group_by(species, island, sex, year, avg_bill_length, avg_flipper_length, avg_body_mass) %>%
   summarise(
     freq = n(),
   )
@@ -73,7 +73,7 @@ penguins_02 %>%
              axis3 = avg_body_mass, 
              y = freq)) +
   scale_x_discrete(limits = c("species", "flipper length", "body mass"), 
-                   expand = c(.05, .3)) +
+                   expand = c(.2, .05)) +
   geom_alluvium(aes(fill = sex),
                 width = 1/12, 
                 alpha = 0.7, 
@@ -92,7 +92,6 @@ penguins_02 %>%
   theme(
     axis.text.x = element_text(size = 12, face = "bold")
   )
-
 
 # Viz2 - penguin's size (flipper length and body mass) by island
 penguins_02 %>%
@@ -137,14 +136,125 @@ penguins_02 %>%
   geom_text(stat = "stratum", 
             aes(label = after_stat(stratum))) +
   scale_color_viridis(discrete = TRUE) +
-  scale_fill_viridis(discrete = TRUE) +
+  scale_fill_viridis(discrete = TRUE, name = "Islands") + 
   labs(
     title = "How big are penguins at Palmer Station LTER?",
-    subtitle = "Body mass and flipper length by species and island",
+    subtitle = "A comparison of flipper length and body mass by each species and islands",
     caption = "data source: https://oceaninformatics.ucsd.edu/datazoo/catalogs/pallter/datasets/220"
   ) +
   theme_fivethirtyeight() +
   theme(
-    axis.text.x = element_text(size = 10, face = "bold")
-  ) +
+    axis.text.x = element_text(size = 10, face = "bold"),
+    axis.text.y = element_blank()
+  ) 
   ggsave("Penguins.png")
+
+
+# Blog --------------------------------------------------------------------
+
+# where can they be found?
+penguins_02 %>%
+  ggplot(aes(axis1 = species, 
+             axis2 = island, 
+             y = freq)) +
+  scale_x_discrete(limits = c("species", "island"),
+                   expand = c(.005, 0.025)) +
+  geom_alluvium(aes(fill = sex),
+                width = 1/12, 
+                alpha = 0.7, 
+                knot.pos = 0.4) +
+  geom_stratum(width = 1/3) +
+  geom_text(stat = "stratum", 
+            aes(label = after_stat(stratum))) +
+  scale_fill_manual(values  = c("orange1", "cyan4")) +
+  labs(
+    title = "At which island can they be found?",
+    subtitle = "",
+    caption = ""
+  ) +
+  theme_fivethirtyeight() +
+  theme(
+    axis.text.x = element_text(size = 12, face = "bold"),
+    axis.title.y = element_blank()
+  ) +
+  ggsave("penguin_viz1.png")
+
+# which species has a bigger culmen and flipper?
+penguins_01 %>% 
+  ggplot(aes(bill_length_mm, flipper_length_mm, group = species)) +
+  geom_point(aes(shape = species, colour = species)) +
+  scale_color_viridis(discrete = TRUE) +
+  scale_fill_viridis(discrete = TRUE, name = "Species") + 
+  labs(
+    title = "Culmen vs flipper length",
+    subtitle = "",
+    x = "Culmen length", 
+    y = "Flipper length",
+    caption = ""
+  ) +
+  theme_fivethirtyeight() 
+  ggsave("penguin_viz2.png")
+
+# Penguin size comparison
+# By island
+penguins_02 %>%
+  ggplot(aes(axis1 = species, 
+             axis2 = avg_flipper_length, 
+             axis3 = avg_body_mass, 
+             y = freq)) +
+  scale_x_discrete(limits = c("species", "flipper length", "body mass"), 
+                   expand = c(.05, .3)) +
+  geom_alluvium(aes(fill = island), 
+                width = 1/12, 
+                alpha = 0.7, 
+                knot.pos = 0.4) +
+  geom_stratum(width = 1/3) +
+  geom_text(stat = "stratum", 
+            aes(label = after_stat(stratum))) +
+  scale_color_viridis(discrete = TRUE) +
+  scale_fill_viridis(discrete = TRUE, name = "Islands") + 
+  labs(
+    title = "Which species is bigger?",
+    subtitle = "A comparison of flipper length and body mass by each islands",
+    caption = ""
+  ) +
+  theme_fivethirtyeight() +
+  theme(
+    axis.text.x = element_text(size = 10, face = "bold"),
+    axis.text.y = element_blank()
+  ) 
+  ggsave("penguin_viz3.png")
+
+# By sex
+penguins_02 %>%
+  ggplot(aes(axis1 = species, 
+             axis2 = avg_flipper_length, 
+             axis3 = avg_body_mass, 
+             y = freq)) +
+  scale_x_discrete(limits = c("species", "flipper length", "body mass"), 
+                   expand = c(.05, .3)) +
+  geom_alluvium(aes(fill = sex), 
+                width = 1/12, 
+                alpha = 0.7, 
+                knot.pos = 0.4) +
+  geom_stratum(width = 1/3) +
+  geom_text(stat = "stratum", 
+            aes(label = after_stat(stratum))) +
+  scale_color_viridis(discrete = TRUE) +
+  scale_fill_viridis(discrete = TRUE, name = "Islands") + 
+  labs(
+    title = "Which species is bigger?",
+    subtitle = "A comparison of flipper length and body mass by each species",
+    caption = ""
+  ) +
+  theme_fivethirtyeight() +
+  theme(
+    axis.text.x = element_text(size = 10, face = "bold"),
+    axis.text.y = element_blank()
+  ) 
+  ggsave("penguin_viz4.png")
+
+
+# Citation ----------------------------------------------------------------
+citation("palmerpenguins")
+
