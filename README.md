@@ -4,4 +4,4 @@
 Goal:
 * Improve my visualization and programming skills
 * Better understand the weekly topics supplied through thorough research
-* Form personal thoughts and opinions on the subject matter
+* Form personal opinions on the subject matter
